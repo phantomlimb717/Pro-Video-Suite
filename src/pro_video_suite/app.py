@@ -7,7 +7,7 @@ import os
 import platform
 import subprocess
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QTextCursor
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (
@@ -64,6 +64,7 @@ class VideoEditorApp(QWidget):
         self.proxy_file: str | None = None
         self.output_dir: str | None = None  # None = same folder as the source
         self.last_output: str | None = None
+        self._load_gen = 0  # bumped each load so stale preview checks are ignored
         self.duration_ms: int = 0
         self.start_ms: int = 0
         self.end_ms: int = 0
@@ -466,6 +467,7 @@ class VideoEditorApp(QWidget):
     def load_video_file(self, filepath: str) -> None:
         # input_file always stays the ORIGINAL — export uses it, never a proxy.
         self.input_file = filepath
+        self._load_gen += 1
         self._discard_proxy()
         self.video_display.clear()
         self.btn_run.setEnabled(True)
@@ -479,15 +481,47 @@ class VideoEditorApp(QWidget):
         self.probe_video()
 
         if self.video_codec in self.PREVIEW_UNSUPPORTED_CODECS:
+            # Known-bad codec (e.g. AV1) — go straight to a proxy, no black wait.
             self._start_preview_proxy(filepath)
         else:
+            # Try to preview directly; if no frames render, fall back to a proxy. This
+            # catches any codec the backend can't decode, not just a hardcoded list.
             self._preview_source(filepath)
+            self._schedule_preview_check(filepath)
 
     def _preview_source(self, path: str) -> None:
         """Point the player at a path and start playing it."""
         self.player.setSource(QUrl.fromLocalFile(path))
         self.player.play()
         self.btn_play.setText("Pause")
+
+    def _schedule_preview_check(self, source: str) -> None:
+        """After a grace period, verify the preview actually rendered frames."""
+        gen = self._load_gen
+        QTimer.singleShot(3000, lambda: self._verify_preview(gen, source))
+
+    def _verify_preview(self, gen: int, source: str) -> None:
+        # Ignore if another file was loaded, or we already switched to a proxy.
+        if gen != self._load_gen or self.proxy_file is not None:
+            return
+        playable = (
+            QMediaPlayer.MediaStatus.BufferedMedia,
+            QMediaPlayer.MediaStatus.BufferingMedia,
+            QMediaPlayer.MediaStatus.LoadedMedia,
+            QMediaPlayer.MediaStatus.StalledMedia,
+        )
+        undecodable = (
+            self.video_display.frames_received == 0
+            and self.player.hasVideo()
+            and self.player.mediaStatus() in playable
+        )
+        if undecodable:
+            self.log(
+                ">> This video's format can't be previewed on macOS. Building a temporary "
+                "preview (your original file is untouched and is what EXPORT uses)…"
+            )
+            self.log_section.set_expanded(True)
+            self._start_preview_proxy(source)
 
     def _start_preview_proxy(self, source: str) -> None:
         """Build a temporary H.264 preview for a codec the player can't decode (e.g. AV1)."""
@@ -537,6 +571,13 @@ class VideoEditorApp(QWidget):
             self.proxy_file = None
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        # Stop every worker thread before teardown, or Qt aborts with
+        # "QThread: Destroyed while thread is still running".
+        for attr in ("dl_worker", "worker", "proxy_worker"):
+            worker = getattr(self, attr, None)
+            if worker is not None and worker.isRunning():
+                worker.stop()
+                worker.wait(5000)
         self._discard_proxy()
         super().closeEvent(event)
 

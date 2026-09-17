@@ -63,17 +63,25 @@ class VideoDisplay(QWidget):
         super().__init__()
         self.sink = QVideoSink()
         self._image = QImage()
+        # How many valid frames we've actually rendered since the last clear(). Used to
+        # detect a codec the backend can't decode (0 frames while the media claims video).
+        self.frames_received = 0
         self.sink.videoFrameChanged.connect(self._on_frame)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setAutoFillBackground(True)
 
     def clear(self) -> None:
-        """Drop the current frame (e.g. when loading a new file)."""
+        """Drop the current frame and reset the counter (e.g. when loading a new file)."""
         self._image = QImage()
+        self.frames_received = 0
         self.update()
 
     def _on_frame(self, frame: QVideoFrame) -> None:
-        self._image = frame.toImage() if frame.isValid() else QImage()
+        if frame.isValid():
+            self.frames_received += 1
+            self._image = frame.toImage()
+        else:
+            self._image = QImage()
         self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 - Qt override

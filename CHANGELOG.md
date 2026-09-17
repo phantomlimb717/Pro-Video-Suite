@@ -5,10 +5,12 @@
 A cleanup and cross-platform refresh focused on **macOS** (and Linux), keeping Windows working.
 
 ### Added
-- **AV1 preview support (macOS).** macOS can't decode AV1 for playback, so opening an AV1
-  file now builds a small, temporary H.264 preview proxy in `~/.pro-video-suite/`. The
-  original file is never modified and is what EXPORT uses; only one temp preview ever exists
-  and it's cleaned up automatically.
+- **Preview proxy for undecodable formats (macOS).** macOS can't decode some codecs (e.g.
+  AV1) for playback. Opening such a file now builds a small, temporary H.264 preview proxy in
+  `~/.pro-video-suite/`. The original file is never modified and is what EXPORT uses; only one
+  temp preview ever exists and it's cleaned up automatically. Known-bad codecs (AV1) proxy
+  immediately; anything else is detected automatically — if the preview renders zero frames,
+  the app falls back to a proxy — so it's not limited to a hardcoded codec list.
 - **Prominent "open a local file" workflow.** A big "Open Video File" button atop the Editor,
   plus an "Open a Video File to Edit" button on the Download tab — editing local files is now
   a first-class path, not just downloading.
@@ -36,6 +38,9 @@ A cleanup and cross-platform refresh focused on **macOS** (and Linux), keeping W
 - More compact editor layout that fits smaller screens.
 
 ### Fixed
+- Crash (SIGABRT, "QThread: Destroyed while thread is still running") when quitting while a
+  download, export, or preview-proxy thread was still running — all worker threads are now
+  stopped cleanly on close.
 - Broken macOS app icon — the `.icns` was actually HTML with an icon extension; regenerated a
   real multi-resolution icon.
 - `QVideoWidget` bleeding its native layer over the timeline controls on macOS.
