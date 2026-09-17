@@ -11,7 +11,12 @@ import subprocess
 
 from PySide6.QtCore import QThread, Signal
 
-from .platform_utils import ensure_deno, find_tool, hidden_process_startupinfo
+from .platform_utils import (
+    ensure_deno,
+    find_tool,
+    hidden_process_startupinfo,
+    resolve_cookies_browser,
+)
 
 # ffmpeg/libav log lines that are noise for our use case.
 _FFMPEG_NOISE = (
@@ -63,8 +68,17 @@ class DownloadWorker(QThread):
 
             cookie_args: list[str] = []
             if self.cookies_browser:
-                cookie_args = ["--cookies-from-browser", self.cookies_browser]
-                self.progress.emit(f">> Using {self.cookies_browser} cookies for authentication.")
+                value = resolve_cookies_browser(self.cookies_browser)
+                if value:
+                    cookie_args = ["--cookies-from-browser", value]
+                    self.progress.emit(
+                        f">> Using {self.cookies_browser} cookies for authentication."
+                    )
+                else:
+                    self.progress.emit(
+                        f">> Warning: couldn't find {self.cookies_browser} cookies on this "
+                        "machine; continuing without them."
+                    )
 
             # 1. Resolve the output filename first, then force an .mp4 preview file.
             cmd_name = (

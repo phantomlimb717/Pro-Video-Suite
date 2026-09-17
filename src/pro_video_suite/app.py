@@ -139,7 +139,7 @@ class VideoEditorApp(QWidget):
         self.chk_cookies.setStyleSheet("color: #ccc;")
         self.combo_browser = QComboBox()
         self.combo_browser.addItems(
-            ["Safari", "Chrome", "Brave", "Firefox", "Edge", "Chromium", "Opera", "Vivaldi"]
+            ["Safari", "Chrome", "Brave", "Firefox", "Waterfox", "Edge", "Chromium", "Opera", "Vivaldi"]
         )
         self.combo_browser.setEnabled(False)
         self.chk_cookies.toggled.connect(self.combo_browser.setEnabled)

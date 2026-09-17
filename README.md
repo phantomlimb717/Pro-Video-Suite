@@ -77,8 +77,9 @@ This is the most reliable way to start the app. Tip: make it a one-word shortcut
   when finished the video opens automatically in the editor. There's also an **Open a Video
   File to Edit** button here if you just want to edit a file you already have.
   - **Age-restricted or private videos** need your YouTube login. Tick **Use browser cookies**
-    and pick a browser you're *signed in to YouTube* with — yt-dlp will use that session. If a
-    download fails, the log now shows the real reason (e.g. "Sign in to confirm your age").
+    and pick a browser you're *signed in to YouTube* with — yt-dlp will use that session
+    (Waterfox is supported too; it's read via its Firefox-format profile). If a download fails,
+    the log now shows the real reason (e.g. "Sign in to confirm your age").
 - **Editing**: On the **2. Editor** tab:
   - Click **📂 Open Video File** (top) to load a local file, or arrive here from a download.
   - Use the timeline slider to find the part you want.

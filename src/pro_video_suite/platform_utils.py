@@ -94,6 +94,50 @@ def find_tool(name: str) -> Optional[str]:
     return shutil.which(name)
 
 
+# Browsers yt-dlp's --cookies-from-browser understands natively.
+_NATIVE_COOKIE_BROWSERS = {
+    "brave", "chrome", "chromium", "edge", "firefox", "opera", "safari", "vivaldi", "whale",
+}
+
+
+def _waterfox_cookies_spec() -> Optional[str]:
+    """A ``firefox:<profile>`` value pointing at a Waterfox profile with cookies, else None.
+
+    Waterfox is a Firefox fork yt-dlp doesn't list, but its cookies are Firefox-format,
+    so we point the firefox reader at Waterfox's profile directory.
+    """
+    system = platform.system()
+    if system == "Darwin":
+        bases = [Path.home() / "Library/Application Support/Waterfox/Profiles"]
+    elif system == "Windows":
+        appdata = os.environ.get("APPDATA")
+        bases = [Path(appdata) / "Waterfox" / "Profiles"] if appdata else []
+    else:
+        bases = [Path.home() / ".waterfox", Path.home() / ".mozilla" / "waterfox"]
+    for base in bases:
+        if not base.is_dir():
+            continue
+        profiles = [p for p in base.iterdir() if p.is_dir() and (p / "cookies.sqlite").exists()]
+        if profiles:
+            # Prefer the "*.default-release" profile.
+            profiles.sort(key=lambda p: (0 if "default-release" in p.name else 1, p.name))
+            return f"firefox:{profiles[0]}"
+    return None
+
+
+def resolve_cookies_browser(browser: str) -> Optional[str]:
+    """Map a browser name to a ``--cookies-from-browser`` value, or None if unavailable.
+
+    Native yt-dlp browsers pass through unchanged; Waterfox resolves to ``firefox:<profile>``.
+    """
+    name = browser.strip().lower()
+    if name in _NATIVE_COOKIE_BROWSERS:
+        return name
+    if name == "waterfox":
+        return _waterfox_cookies_spec()
+    return None
+
+
 def missing_tools(names: tuple[str, ...] = REQUIRED_TOOLS) -> list[str]:
     """Names of required tools that are not on ``PATH``."""
     return [name for name in names if find_tool(name) is None]
