@@ -55,10 +55,12 @@ pip install -e .
 pro-video-suite                    # launches the app
 ```
 
-`pro-video-suite` is installed as a command. You can also run it as a module:
+`pro-video-suite` is installed as a command. You can also run it as a module, or with the
+convenience launcher script:
 
 ```bash
 python -m pro_video_suite
+python run.py                # simplest — run from the project root inside the venv
 ```
 
 **Launch it any time (no venv activation needed):**
