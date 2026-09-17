@@ -35,23 +35,31 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.datas,
-    [],
-    name="ProVideoSuite",
-    debug=False,
-    strip=False,
-    upx=False,
-    console=False,
-    icon=icon,
-)
-
 if sys.platform == "darwin":
-    app = BUNDLE(
+    # macOS: onedir inside a proper .app bundle (onefile + .app is deprecated and
+    # slower — it unpacks to a temp dir on every launch).
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name="ProVideoSuite",
+        debug=False,
+        strip=False,
+        upx=False,
+        console=False,
+        icon=icon,
+    )
+    coll = COLLECT(
         exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=False,
+        name="ProVideoSuite",
+    )
+    app = BUNDLE(
+        coll,
         name="Pro Video Suite.app",
         icon=icon,
         bundle_identifier="com.provideosuite.app",
@@ -59,4 +67,19 @@ if sys.platform == "darwin":
             "NSHighResolutionCapable": True,
             "LSApplicationCategoryType": "public.app-category.video",
         },
+    )
+else:
+    # Windows / Linux: a single self-contained executable.
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name="ProVideoSuite",
+        debug=False,
+        strip=False,
+        upx=False,
+        console=False,
+        icon=icon,
     )

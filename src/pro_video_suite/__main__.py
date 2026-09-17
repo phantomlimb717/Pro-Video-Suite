@@ -17,7 +17,7 @@ from PySide6.QtGui import QColor, QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from .app import VideoEditorApp  # noqa: E402
-from .platform_utils import asset_path  # noqa: E402
+from .platform_utils import asset_path, ensure_tool_path  # noqa: E402
 
 # Extra ffmpeg/libav noise that slips past QT_LOGGING_RULES on some platforms.
 _SUPPRESSED_LOG_FRAGMENTS = (
@@ -63,6 +63,7 @@ def _app_icon() -> QIcon:
 
 
 def main() -> int:
+    ensure_tool_path()  # so a Finder-launched .app can still find ffmpeg/yt-dlp
     qInstallMessageHandler(_qt_message_handler)
 
     app = QApplication(sys.argv)

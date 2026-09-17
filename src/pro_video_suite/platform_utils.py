@@ -61,6 +61,28 @@ def hidden_process_startupinfo() -> Optional["subprocess.STARTUPINFO"]:
     return startupinfo
 
 
+def ensure_tool_path() -> None:
+    """Add common CLI tool locations to ``PATH`` (call once at startup).
+
+    A GUI app launched from Finder/Dock inherits a minimal ``PATH`` that omits
+    Homebrew (``/opt/homebrew/bin``, ``/usr/local/bin``), so ffmpeg/yt-dlp would look
+    "missing" even when installed. Terminal launches are unaffected. No-op on Windows.
+    """
+    if IS_WINDOWS:
+        return
+    extra = [
+        "/opt/homebrew/bin",  # Apple Silicon Homebrew
+        "/usr/local/bin",  # Intel Homebrew / common installs
+        "/usr/bin",
+        "/bin",
+        str(Path.home() / ".local" / "bin"),  # pipx / user installs
+    ]
+    current = os.environ.get("PATH", "").split(os.pathsep)
+    additions = [d for d in extra if d and d not in current]
+    if additions:
+        os.environ["PATH"] = os.pathsep.join(current + additions)
+
+
 def find_tool(name: str) -> Optional[str]:
     """Full path to an executable on ``PATH``, or ``None`` if it isn't installed."""
     return shutil.which(name)

@@ -144,11 +144,21 @@ QT_QPA_PLATFORM=offscreen pytest -v
 ### Building a Standalone App
 A single PyInstaller spec covers all three platforms:
 ```bash
+pip install -e ".[dev]"                 # if you haven't already (installs pyinstaller)
 pyinstaller --noconfirm ProVideoSuite.spec
 ```
-- **macOS** → `dist/Pro Video Suite.app`
-- **Linux** → `dist/ProVideoSuite`
-- **Windows** → `dist/ProVideoSuite.exe`
+- **macOS** → `dist/Pro Video Suite.app` (onedir bundle) — drag it into `/Applications`:
+  ```bash
+  cp -R "dist/Pro Video Suite.app" /Applications/
+  ```
+- **Linux** → `dist/ProVideoSuite` (single binary)
+- **Windows** → `dist/ProVideoSuite.exe` (single binary)
+
+The app still needs `ffmpeg` and `yt-dlp` installed on the machine (it shells out to them).
+When launched from Finder/Dock, macOS gives apps a minimal `PATH`; the app adds the usual
+Homebrew locations (`/opt/homebrew/bin`, `/usr/local/bin`) at startup so it can still find
+them. A locally-built `.app` isn't code-signed — if Gatekeeper blocks it, right-click →
+**Open** once to approve it.
 
 CI workflows in `.github/workflows/` build each platform on demand
 (`build-macos.yml`, `build-linux.yml`, `build-windows.yml`) and run the tests on every
