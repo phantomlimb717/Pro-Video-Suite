@@ -70,8 +70,9 @@ This is the most reliable way to start the app. Tip: make it a one-word shortcut
 
 ### How to Use the App
 - **Downloading**: On the **1. Download** tab, paste a YouTube URL and click
-  **DOWNLOAD & LOAD**. Downloads are forced to H.264/AAC so they always preview. When it
-  finishes, the video opens automatically in the editor. There's also an **Open a Video
+  **DOWNLOAD & LOAD**. Files save to your **Downloads** folder by default — change it with the
+  **Save to → Choose…** button. Downloads are forced to H.264/AAC so they always preview, and
+  when finished the video opens automatically in the editor. There's also an **Open a Video
   File to Edit** button here if you just want to edit a file you already have.
 - **Editing**: On the **2. Editor** tab:
   - Click **📂 Open Video File** (top) to load a local file, or arrive here from a download.

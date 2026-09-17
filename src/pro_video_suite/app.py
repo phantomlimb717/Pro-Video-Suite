@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 from . import __app_name__
 from .platform_utils import (
     MONOSPACE_FONT,
+    default_download_dir,
     find_tool,
     hidden_process_startupinfo,
     install_hint,
@@ -65,6 +66,7 @@ class VideoEditorApp(QWidget):
         self.output_dir: str | None = None  # None = same folder as the source
         self.last_output: str | None = None
         self._load_gen = 0  # bumped each load so stale preview checks are ignored
+        self.download_dir: str = str(default_download_dir())  # where downloads are saved
         self.duration_ms: int = 0
         self.start_ms: int = 0
         self.end_ms: int = 0
@@ -111,6 +113,26 @@ class VideoEditorApp(QWidget):
         ig_layout.addWidget(self.url_input)
         input_group.setLayout(ig_layout)
         layout.addWidget(input_group)
+
+        dl_dir_layout = QHBoxLayout()
+        lbl_dl_dir = QLabel("Save to:")
+        lbl_dl_dir.setStyleSheet("color: #aaa;")
+        self.txt_download_dir = QLineEdit()
+        self.txt_download_dir.setReadOnly(True)
+        self.txt_download_dir.setText(self.download_dir)
+        self.txt_download_dir.setStyleSheet(
+            "background-color: #222; color: #ccc; border: 1px solid #444; padding: 6px;"
+        )
+        self.btn_download_dir = QPushButton("Choose…")
+        self.btn_download_dir.clicked.connect(self.choose_download_dir)
+        self.btn_download_dir.setStyleSheet(
+            "background-color: #444; color: white; border: 1px solid #666; "
+            "border-radius: 4px; padding: 6px 12px;"
+        )
+        dl_dir_layout.addWidget(lbl_dl_dir)
+        dl_dir_layout.addWidget(self.txt_download_dir, 1)
+        dl_dir_layout.addWidget(self.btn_download_dir)
+        layout.addLayout(dl_dir_layout)
 
         self.btn_download = QPushButton("DOWNLOAD && LOAD")
         self.btn_download.setFixedHeight(50)
@@ -382,6 +404,14 @@ class VideoEditorApp(QWidget):
     # ==========================
     # DOWNLOAD LOGIC
     # ==========================
+    def choose_download_dir(self) -> None:
+        directory = QFileDialog.getExistingDirectory(
+            self, "Choose Download Folder", self.download_dir
+        )
+        if directory:
+            self.download_dir = directory
+            self.txt_download_dir.setText(directory)
+
     def start_download(self) -> None:
         url = self.url_input.text().strip()
         if not url:
@@ -391,7 +421,7 @@ class VideoEditorApp(QWidget):
         self.btn_download.setEnabled(False)
         self.dl_console.clear()
 
-        self.dl_worker = DownloadWorker(url)
+        self.dl_worker = DownloadWorker(url, self.download_dir)
         self.dl_worker.progress.connect(self.dl_console.append)
         self.dl_worker.finished.connect(self.on_download_complete)
         self.dl_worker.start()

@@ -20,6 +20,9 @@ A cleanup and cross-platform refresh focused on **macOS** (and Linux), keeping W
 - **Choosable output folder.** An "Output Folder" field + "Choose…" button in the export
   panel (defaults to the source video's folder), and a "Show in Finder" button on the export
   success dialog.
+- **Choosable download folder.** Downloads save to `~/Downloads` by default (not the working
+  directory) with a "Save to → Choose…" picker on the Download tab, so files no longer land
+  wherever the app happened to be launched from.
 - **Friendly startup check** that warns (without crashing) when `ffmpeg`/`ffprobe`/`yt-dlp`
   are missing, with an OS-specific install hint.
 - **macOS `.app` and Linux binary builds** via GitHub Actions, plus a CI test workflow that

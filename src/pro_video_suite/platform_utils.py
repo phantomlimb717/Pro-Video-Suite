@@ -48,6 +48,12 @@ def user_data_dir() -> Path:
     return path
 
 
+def default_download_dir() -> Path:
+    """Sensible default folder for downloaded videos (the user's Downloads, else home)."""
+    downloads = Path.home() / "Downloads"
+    return downloads if downloads.is_dir() else Path.home()
+
+
 def hidden_process_startupinfo() -> Optional["subprocess.STARTUPINFO"]:
     """Return startup info that hides the console window on Windows, else ``None``.
 

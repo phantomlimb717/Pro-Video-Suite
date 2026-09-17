@@ -31,9 +31,10 @@ class DownloadWorker(QThread):
     progress = Signal(str)
     finished = Signal(bool, str)
 
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, download_dir: str) -> None:
         super().__init__()
         self.url = url
+        self.download_dir = download_dir
         self.process: subprocess.Popen | None = None
 
     def run(self) -> None:
@@ -46,7 +47,13 @@ class DownloadWorker(QThread):
                 )
                 return
 
+            os.makedirs(self.download_dir, exist_ok=True)
+            # Absolute output template so files land in the chosen folder (not the cwd)
+            # and --get-filename returns a full path we can load afterwards.
+            out_template = os.path.join(self.download_dir, "%(title)s.%(ext)s")
+
             self.progress.emit(f">> Starting Download: {self.url}")
+            self.progress.emit(f">> Saving to: {self.download_dir}")
             self.progress.emit(">> Forcing H.264 (Safe Mode) for preview compatibility...")
 
             deno_path = ensure_deno(self.progress.emit)
@@ -56,7 +63,7 @@ class DownloadWorker(QThread):
             cmd_name = (
                 ["yt-dlp"]
                 + js_runtime_args
-                + ["--get-filename", "-o", "%(title)s.%(ext)s", "--restrict-filenames", self.url]
+                + ["--get-filename", "-o", out_template, "--restrict-filenames", self.url]
             )
             name_proc = subprocess.run(
                 cmd_name,
@@ -82,7 +89,7 @@ class DownloadWorker(QThread):
                     "--merge-output-format",
                     "mp4",
                     "-o",
-                    "%(title)s.%(ext)s",
+                    out_template,
                     "--restrict-filenames",
                     self.url,
                 ]
