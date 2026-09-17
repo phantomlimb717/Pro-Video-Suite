@@ -74,12 +74,14 @@ python -m pro_video_suite
     headers to expand them.
   - Pick your output format (Video or Audio Only) and click **EXPORT**.
 
-### A note on AV1 videos (macOS)
-macOS's built-in video playback can't decode **AV1** (a codec YouTube sometimes uses). When
-you open an AV1 file, the app automatically builds a small, temporary H.264 **preview** in
-`~/.pro-video-suite/` so you can still see and scrub it. Your original file is never modified,
-**EXPORT always uses the original** (full quality), and only one temporary preview ever exists
-(it's overwritten and deleted automatically). No stray converted copies.
+### A note on formats macOS can't preview (e.g. AV1)
+macOS's built-in video playback can't decode some codecs — **AV1** most commonly (YouTube
+uses it), but others too. When you open such a file, the app automatically builds a small,
+temporary H.264 **preview** in `~/.pro-video-suite/` so you can still see and scrub it. This
+is detected automatically — if the preview renders no frames, the app switches to a proxy — so
+it isn't limited to a fixed list of codecs. Your original file is never modified, **EXPORT
+always uses the original** (full quality), and only one temporary preview ever exists (it's
+overwritten and deleted automatically). No stray converted copies.
 
 ---
 
@@ -112,9 +114,12 @@ stay platform-agnostic. Notable cross-platform details:
 - **Video preview** paints `QVideoSink` frames into a plain widget (`VideoDisplay`) instead
   of using `QVideoWidget`, whose native macOS layer overpaints adjacent controls and ignores
   size constraints.
-- **AV1 preview proxy**: codecs the Qt backend can't decode (`PREVIEW_UNSUPPORTED_CODECS`,
-  e.g. AV1 on macOS) trigger `ProxyWorker`, which transcodes a small temporary H.264 preview.
-  Export always uses the original file.
+- **Preview proxy for undecodable formats**: known-bad codecs (`PREVIEW_UNSUPPORTED_CODECS`,
+  e.g. AV1) proxy immediately; anything else is detected at runtime — `VideoDisplay` counts
+  rendered frames and `_verify_preview` falls back to `ProxyWorker` if a playing file renders
+  zero frames. Export always uses the original file.
+- **Worker threads** (download / export / proxy) are all stopped in `closeEvent`, so quitting
+  mid-task doesn't abort the process.
 - **Downloads force H.264/AAC** via a yt-dlp format *filter* (`bv*[vcodec^=avc1]+...`), not a
   soft `-S` sort, so previews always work.
 - Monospace fonts use a fallback stack (`Menlo, Monaco, Consolas, …`) that resolves on
