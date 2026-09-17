@@ -1,11 +1,11 @@
-name: Build Windows Executable
+name: Build Linux Binary
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -15,6 +15,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install system libraries for Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon0 libgl1
 
       - name: Install dependencies
         run: |
@@ -27,5 +32,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Pro-Video-Suite-Windows
-          path: dist/ProVideoSuite.exe
+          name: Pro-Video-Suite-Linux
+          path: dist/ProVideoSuite

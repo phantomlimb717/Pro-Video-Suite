@@ -1,11 +1,11 @@
-name: Build Windows Executable
+name: Build macOS App
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: macos-latest  # Apple Silicon runner
 
     steps:
       - name: Checkout code
@@ -24,8 +24,13 @@ jobs:
       - name: Build with PyInstaller
         run: pyinstaller --noconfirm ProVideoSuite.spec
 
+      - name: Zip the .app bundle
+        run: |
+          cd dist
+          ditto -c -k --keepParent "Pro Video Suite.app" "Pro-Video-Suite-macOS.zip"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Pro-Video-Suite-Windows
-          path: dist/ProVideoSuite.exe
+          name: Pro-Video-Suite-macOS
+          path: dist/Pro-Video-Suite-macOS.zip

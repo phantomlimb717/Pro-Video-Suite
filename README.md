@@ -1,98 +1,155 @@
 |  Pro Video Suite (Downloader + Editor) |
 | :---: |
-| ![Alt Text](screenshot.png) |
+| ![Pro Video Suite screenshot](screenshot.png) |
 
-Welcome to the **Pro Video Suite**! This application is a handy, all-in-one tool that lets you download videos from YouTube (and other supported sites) and edit them right away.
+Welcome to the **Pro Video Suite**! This is a small, all-in-one desktop app that lets you
+download videos from YouTube (and other supported sites) and edit them right away.
 
-Whether you're just looking to save a video for offline viewing, trim a long clip, or extract the audio as an MP3, this app has you covered!
+Whether you're just looking to save a video for offline viewing, trim a long clip, or
+extract the audio as an MP3, this app has you covered.
+
+> **Platforms:** built and tested primarily on **macOS** and **Linux**. Windows is still
+> supported.
 
 ---
 
 ## 🟢 For Beginners: Getting Started
 
 ### What does this app do?
-1. **Download Videos**: Paste a video link, and the app will download it to your computer at high quality.
-2. **Trim & Cut**: Open any video file and select only the part you want to keep. No more sharing a 10-minute video when you only need a 10-second clip!
-3. **Convert Formats**: Save your edited video as an MP4, or extract just the audio as an MP3 or M4A file.
-4. **Control Quality**: Choose exactly how large you want your final video file to be, or let the app automatically choose the best quality.
+1. **Download Videos**: Paste a video link and the app downloads it at high quality.
+2. **Trim & Cut**: Open any video file and keep only the part you want.
+3. **Convert Formats**: Save your edit as an MP4, or extract just the audio as MP3/M4A.
+4. **Control Quality**: Target an exact file size, or let the app pick the best quality.
 
 ### Prerequisites
-To run this application, you need to have a few things installed on your computer:
-1. **Python 3.8+**: The programming language the app is built with.
-2. **yt-dlp**: A tool the app uses to download videos.
-3. **FFmpeg**: A powerful tool the app uses to process, trim, and convert videos.
+You need three things installed and on your `PATH`:
+1. **Python 3.9+** — the language the app is built with.
+2. **FFmpeg** (`ffmpeg` + `ffprobe`) — trims, converts, and inspects videos.
+3. **yt-dlp** — downloads videos.
 
-### How to Install and Run
-1. **Install Python dependencies**:
-   Open your terminal or command prompt in the project folder and run:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. **Install FFmpeg and yt-dlp**:
-   - **Windows**: You can download them using a package manager like `winget` or `choco`, or download the executables manually and add them to your system's PATH.
-   - **Mac**: Use Homebrew: `brew install ffmpeg yt-dlp`
-   - **Linux**: Use your package manager: `sudo apt install ffmpeg yt-dlp` (or equivalent).
-3. **Start the App**:
-   Run the following command:
-   ```bash
-   python downloader.py
-   ```
+Install the two external tools:
+
+- **macOS** (Homebrew):
+  ```bash
+  brew install ffmpeg yt-dlp
+  ```
+- **Linux** (Debian/Ubuntu):
+  ```bash
+  sudo apt install ffmpeg
+  pipx install yt-dlp        # or: sudo apt install yt-dlp
+  ```
+- **Windows** (winget):
+  ```powershell
+  winget install ffmpeg yt-dlp
+  ```
+
+> The app checks for these on startup and warns you (without crashing) if any are missing.
+
+### Install and Run
+From the project folder:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e .
+pro-video-suite                    # launches the app
+```
+
+`pro-video-suite` is installed as a command. You can also run it as a module:
+
+```bash
+python -m pro_video_suite
+```
 
 ### How to Use the App
-- **Downloading**: Go to the "1. Download" tab. Paste a YouTube URL and click "DOWNLOAD & LOAD". Once finished, it will automatically open the video in the editor.
-- **Editing**: Go to the "2. Editor" tab.
-  - Use the timeline slider to find the part of the video you want.
-  - Click **[ Set IN ]** to mark the start of your clip.
-  - Click **[ Set OUT ]** to mark the end of your clip.
-  - Choose your output format (Video or Audio Only) and click **EXPORT**!
+- **Downloading**: On the **1. Download** tab, paste a YouTube URL and click
+  **DOWNLOAD & LOAD**. Downloads are forced to H.264/AAC so they always preview. When it
+  finishes, the video opens automatically in the editor. There's also an **Open a Video
+  File to Edit** button here if you just want to edit a file you already have.
+- **Editing**: On the **2. Editor** tab:
+  - Click **📂 Open Video File** (top) to load a local file, or arrive here from a download.
+  - Use the timeline slider to find the part you want.
+  - Click **[ Set IN ]** to mark the start, **[ Set OUT ]** to mark the end.
+  - **Configuration** and **Log** start collapsed to give the preview room — click their
+    headers to expand them.
+  - Pick your output format (Video or Audio Only) and click **EXPORT**.
+
+### A note on AV1 videos (macOS)
+macOS's built-in video playback can't decode **AV1** (a codec YouTube sometimes uses). When
+you open an AV1 file, the app automatically builds a small, temporary H.264 **preview** in
+`~/.pro-video-suite/` so you can still see and scrub it. Your original file is never modified,
+**EXPORT always uses the original** (full quality), and only one temporary preview ever exists
+(it's overwritten and deleted automatically). No stray converted copies.
 
 ---
 
 ## 🛠️ For Developers: Under the Hood
 
-This section provides technical details for developers who want to understand the codebase, modify it, or contribute to the project.
-
 ### Tech Stack
-- **GUI Framework**: [PySide6](https://doc.qt.io/qtforpython-6/) (Qt for Python). We use `QMediaPlayer` and `QVideoWidget` for media playback.
-- **Downloading**: `subprocess` calls to `yt-dlp`.
-- **Media Processing**: `subprocess` calls to `ffmpeg` and `ffprobe`.
+- **GUI**: [PySide6](https://doc.qt.io/qtforpython-6/) (Qt for Python). Playback uses
+  `QMediaPlayer` + a `QVideoSink`; frames are painted by a custom `VideoDisplay` widget
+  (see below for why we avoid `QVideoWidget`).
+- **Downloading**: `subprocess` calls to `yt-dlp` (with a lazily-downloaded Deno JS runtime).
+- **Media processing**: `subprocess` calls to `ffmpeg` and `ffprobe`.
 
 ### Project Structure
-- `downloader.py`: The single entry point containing all logic, UI components, and worker threads.
-- `requirements.txt`: Python package dependencies (primarily `PySide6`).
+```
+src/pro_video_suite/
+  __init__.py         # version / app name
+  __main__.py         # entry point: QApplication, theme, icon, log filtering
+  app.py              # VideoEditorApp — the main window and all editor logic
+  workers.py          # QThreads: DownloadWorker (yt-dlp), ConversionWorker + ProxyWorker (ffmpeg)
+  widgets.py          # VideoDisplay (sink painter), RangeBar (trim bar), CollapsibleSection
+  platform_utils.py   # OS-specific helpers: asset paths, tool discovery, Deno download
+  assets/             # app icons (.icns / .ico / .png / .svg)
+tests/
+  test_smoke.py       # headless construction test (Qt offscreen)
+ProVideoSuite.spec    # cross-platform PyInstaller build recipe
+```
 
-### Architecture Overview
-The application is structured around a central `VideoEditorApp` widget (inheriting from `QWidget`) which contains two main tabs, and two independent `QThread` workers to prevent blocking the UI during heavy I/O or CPU operations.
-
-#### 1. UI Components
-- **`VideoEditorApp`**: Main window class initializing the UI, setting up the `QTabWidget`, and orchestrating interactions between the tabs and the media player.
-- **`RangeBar`**: A custom `QWidget` that overrides `paintEvent` to draw a visual representation of the trimmed selection on the timeline.
-- **Custom Theming**: A customized dark mode `QPalette` is applied at the `QApplication` level to ensure a consistent, modern look across OS platforms.
-
-#### 2. Background Workers (`QThread`)
-To keep the main Qt event loop responsive, long-running shell commands are offloaded to worker threads:
-- **`DownloadWorker`**:
-  - First, executes `yt-dlp --get-filename` to determine the expected output name.
-  - Forces an H.264 MP4 container download (`-S vcodec:h264,res,acodec:m4a`) to ensure maximum compatibility with the Qt Multimedia preview widget.
-  - Streams `stdout` to emit progress updates back to the UI.
-- **`ConversionWorker`**:
-  - Executes `ffmpeg` with the provided arguments for trimming, re-encoding, and scaling.
-  - Streams the `ffmpeg` console output to the UI log.
-  - Can be cleanly interrupted (killed) if the user cancels the export.
-
-#### 3. Video Playback & Seeking Logic
-- The `QMediaPlayer` is tightly integrated with a custom `QSlider` and the `RangeBar`.
-- **Looping mechanism**: During trimming, if an IN and OUT point are set, the application continuously checks the player position (`position_changed` signal). If the position exceeds the OUT point (`end_ms`), it seamlessly resets to the IN point (`start_ms`).
-
-### Extending the Application
-If you wish to add new features, here are a few starting points:
-- **More Encoders**: Add new hardware encoders (like Intel QuickSync) in the `populate_encoders` method inside `VideoEditorApp`.
-- **Advanced FFmpeg Filters**: Modify the `start_encoding` method to inject additional `ffmpeg` video filters (`-vf`), such as text overlays, watermarks, or color correction.
-- **Queue System**: Currently, the app handles one download/export at a time. You could extend the architecture to use a queue (`queue.Queue`) and allow batch processing.
+All OS-specific behavior is isolated in `platform_utils.py`, so the UI and worker code
+stay platform-agnostic. Notable cross-platform details:
+- **Video preview** paints `QVideoSink` frames into a plain widget (`VideoDisplay`) instead
+  of using `QVideoWidget`, whose native macOS layer overpaints adjacent controls and ignores
+  size constraints.
+- **AV1 preview proxy**: codecs the Qt backend can't decode (`PREVIEW_UNSUPPORTED_CODECS`,
+  e.g. AV1 on macOS) trigger `ProxyWorker`, which transcodes a small temporary H.264 preview.
+  Export always uses the original file.
+- **Downloads force H.264/AAC** via a yt-dlp format *filter* (`bv*[vcodec^=avc1]+...`), not a
+  soft `-S` sort, so previews always work.
+- Monospace fonts use a fallback stack (`Menlo, Monaco, Consolas, …`) that resolves on
+  every OS instead of relying on a Windows-only font.
+- The Deno runtime and the preview proxy are cached under `~/.pro-video-suite/`, never inside
+  the install dir.
+- Windows-only encoders (NVENC/AMF) and console-hiding are gated behind OS checks.
 
 ### Developer Setup
-1. Clone the repository.
-2. Create a virtual environment: `python -m venv .venv`
-3. Activate the environment and install dependencies: `pip install -r requirements.txt`
-4. Ensure `yt-dlp` and `ffmpeg` are in your system PATH.
-5. Run `python downloader.py` to test your changes.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"       # app + pytest + pyinstaller
+```
+
+### Running Tests
+Tests run headless via Qt's `offscreen` platform plugin (no display needed):
+```bash
+QT_QPA_PLATFORM=offscreen pytest -v
+```
+
+### Building a Standalone App
+A single PyInstaller spec covers all three platforms:
+```bash
+pyinstaller --noconfirm ProVideoSuite.spec
+```
+- **macOS** → `dist/Pro Video Suite.app`
+- **Linux** → `dist/ProVideoSuite`
+- **Windows** → `dist/ProVideoSuite.exe`
+
+CI workflows in `.github/workflows/` build each platform on demand
+(`build-macos.yml`, `build-linux.yml`, `build-windows.yml`) and run the tests on every
+push/PR (`test.yml`).
+
+### Extending the Application
+- **More encoders**: add hardware encoders in `VideoEditorApp.populate_encoders`.
+- **Advanced FFmpeg filters**: extend the `-vf` chain in `VideoEditorApp.start_encoding`.
+- **Batch/queue**: the app processes one job at a time; a `queue.Queue` would enable batches.
