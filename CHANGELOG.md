@@ -23,6 +23,11 @@ A cleanup and cross-platform refresh focused on **macOS** (and Linux), keeping W
 - **Choosable download folder.** Downloads save to `~/Downloads` by default (not the working
   directory) with a "Save to → Choose…" picker on the Download tab, so files no longer land
   wherever the app happened to be launched from.
+- **Browser-cookie authentication.** A "Use browser cookies" checkbox + browser picker on the
+  Download tab passes `--cookies-from-browser` so age-restricted / private videos download when
+  you're signed in to YouTube in that browser.
+- **Real download errors** are surfaced in the log (e.g. "Sign in to confirm your age") instead
+  of the generic "yt-dlp returned error", with a hint to enable cookies for age-restricted ones.
 - **Friendly startup check** that warns (without crashing) when `ffmpeg`/`ffprobe`/`yt-dlp`
   are missing, with an OS-specific install hint.
 - **macOS `.app` and Linux binary builds** via GitHub Actions, plus a CI test workflow that

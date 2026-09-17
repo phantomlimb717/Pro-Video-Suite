@@ -31,10 +31,12 @@ class DownloadWorker(QThread):
     progress = Signal(str)
     finished = Signal(bool, str)
 
-    def __init__(self, url: str, download_dir: str) -> None:
+    def __init__(self, url: str, download_dir: str, cookies_browser: str | None = None) -> None:
         super().__init__()
         self.url = url
         self.download_dir = download_dir
+        # e.g. "safari"/"chrome" -> pass --cookies-from-browser for age-restricted/private videos
+        self.cookies_browser = cookies_browser
         self.process: subprocess.Popen | None = None
 
     def run(self) -> None:
@@ -59,10 +61,16 @@ class DownloadWorker(QThread):
             deno_path = ensure_deno(self.progress.emit)
             js_runtime_args = ["--js-runtimes", f"deno:{deno_path}"] if deno_path else []
 
+            cookie_args: list[str] = []
+            if self.cookies_browser:
+                cookie_args = ["--cookies-from-browser", self.cookies_browser]
+                self.progress.emit(f">> Using {self.cookies_browser} cookies for authentication.")
+
             # 1. Resolve the output filename first, then force an .mp4 preview file.
             cmd_name = (
                 ["yt-dlp"]
                 + js_runtime_args
+                + cookie_args
                 + ["--get-filename", "-o", out_template, "--restrict-filenames", self.url]
             )
             name_proc = subprocess.run(
@@ -83,6 +91,7 @@ class DownloadWorker(QThread):
             cmd = (
                 ["yt-dlp"]
                 + js_runtime_args
+                + cookie_args
                 + [
                     "-f",
                     "bv*[vcodec^=avc1]+ba[acodec^=mp4a]/b[vcodec^=avc1]/b",
@@ -106,10 +115,17 @@ class DownloadWorker(QThread):
             )
 
             assert self.process.stdout is not None
+            last_error = ""
             for line in self.process.stdout:
                 line = line.strip()
-                if line and "[download]" in line:
+                if not line:
+                    continue
+                if "[download]" in line:
                     self.progress.emit(line)
+                elif "ERROR" in line or "age-restricted" in line or "Sign in to confirm" in line:
+                    self.progress.emit(line)  # surface the real reason live
+                if "ERROR" in line:
+                    last_error = line
 
             self.process.wait()
 
@@ -119,7 +135,14 @@ class DownloadWorker(QThread):
                 else:
                     self.finished.emit(False, "Download finished but file not found.")
             else:
-                self.finished.emit(False, "yt-dlp returned error or was stopped.")
+                reason = last_error or "yt-dlp returned an error (see the log above)."
+                if "sign in" in reason.lower() or "age" in reason.lower():
+                    reason = (
+                        "This video is age-restricted. Enable “Use browser cookies” below and "
+                        "pick a browser you're signed in to YouTube with, then try again.\n\n"
+                        + reason
+                    )
+                self.finished.emit(False, reason)
 
         except Exception as exc:  # noqa: BLE001 - report any failure to the UI
             self.finished.emit(False, str(exc))

@@ -134,6 +134,20 @@ class VideoEditorApp(QWidget):
         dl_dir_layout.addWidget(self.btn_download_dir)
         layout.addLayout(dl_dir_layout)
 
+        cookies_layout = QHBoxLayout()
+        self.chk_cookies = QCheckBox("Use browser cookies (for age-restricted / private videos)")
+        self.chk_cookies.setStyleSheet("color: #ccc;")
+        self.combo_browser = QComboBox()
+        self.combo_browser.addItems(
+            ["Safari", "Chrome", "Brave", "Firefox", "Edge", "Chromium", "Opera", "Vivaldi"]
+        )
+        self.combo_browser.setEnabled(False)
+        self.chk_cookies.toggled.connect(self.combo_browser.setEnabled)
+        cookies_layout.addWidget(self.chk_cookies)
+        cookies_layout.addWidget(self.combo_browser)
+        cookies_layout.addStretch()
+        layout.addLayout(cookies_layout)
+
         self.btn_download = QPushButton("DOWNLOAD && LOAD")
         self.btn_download.setFixedHeight(50)
         self.btn_download.setStyleSheet(
@@ -421,7 +435,10 @@ class VideoEditorApp(QWidget):
         self.btn_download.setEnabled(False)
         self.dl_console.clear()
 
-        self.dl_worker = DownloadWorker(url, self.download_dir)
+        cookies_browser = (
+            self.combo_browser.currentText().lower() if self.chk_cookies.isChecked() else None
+        )
+        self.dl_worker = DownloadWorker(url, self.download_dir, cookies_browser)
         self.dl_worker.progress.connect(self.dl_console.append)
         self.dl_worker.finished.connect(self.on_download_complete)
         self.dl_worker.start()
