@@ -30,3 +30,13 @@ Thumbs.db
 # Logs / scratch
 wget-log
 *.log
+
+# Downloaded / exported media (the app writes these into the working dir)
+*.part
+*.ytdl
+*.mp4
+*.webm
+*.mkv
+*.mov
+*.m4a
+*.mp3

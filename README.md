@@ -61,6 +61,13 @@ pro-video-suite                    # launches the app
 python -m pro_video_suite
 ```
 
+**Launch it any time (no venv activation needed):**
+```bash
+~/Pro-Video-Suite/.venv/bin/pro-video-suite
+```
+This is the most reliable way to start the app. Tip: make it a one-word shortcut by adding
+`alias pvs='~/Pro-Video-Suite/.venv/bin/pro-video-suite'` to your `~/.zshrc`.
+
 ### How to Use the App
 - **Downloading**: On the **1. Download** tab, paste a YouTube URL and click
   **DOWNLOAD & LOAD**. Downloads are forced to H.264/AAC so they always preview. When it
@@ -159,6 +166,9 @@ When launched from Finder/Dock, macOS gives apps a minimal `PATH`; the app adds 
 Homebrew locations (`/opt/homebrew/bin`, `/usr/local/bin`) at startup so it can still find
 them. A locally-built `.app` isn't code-signed — if Gatekeeper blocks it, right-click →
 **Open** once to approve it.
+
+> If the `.app` won't open, just run it from the terminal instead — that's the most reliable
+> path: `~/Pro-Video-Suite/.venv/bin/pro-video-suite`.
 
 CI workflows in `.github/workflows/` build each platform on demand
 (`build-macos.yml`, `build-linux.yml`, `build-windows.yml`) and run the tests on every
